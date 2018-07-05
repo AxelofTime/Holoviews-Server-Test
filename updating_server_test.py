@@ -40,7 +40,8 @@ def f():
                                     'ipm2':ipm2Stuff[index:index+100]}))
         index += 100
     else: 
-        cb.stop()
+        #cb.stop()
+        # Needs to stop loop
 
 # Starting data set
 testData = pd.DataFrame({'ebeam':ebeamL3[:100],'ipm2':ipm2[:100]})
