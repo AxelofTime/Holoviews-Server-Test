@@ -18,6 +18,7 @@ ipm2 = data.ipm2.sum.read()
 
 actualData = pd.DataFrame({'ebeam':ebeamL3, 'ipm2':ipm2})
 
+# NOTE: Figured out way to redim the graph without having to filter, will update in future
 # Filtering the actual data, need to find way to simply redim graph without having to filter dataset
 a = actualData["ipm2"].quantile(0.99)
 actualData = actualData[actualData["ipm2"] < a]
