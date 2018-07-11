@@ -26,11 +26,11 @@ def genHex(df):
     lowY = df[colNames[1]].quantile(0.01)
     highY = df[colNames[1]].quantile(0.99)
     
-    if len(checkList.index) > len(df.index): 
-        print("FAIL")
+    # if len(checkList.index) > len(df.index): 
+    #    print("FAIL")
         
     checkList = df.copy()
-    #print(df.index)
+    print(df.index)
     
     return hv.HexTiles(df, group="Number of events: " + str(len(df.index))).redim.range(
         ebeam=(lowX, highX), 
@@ -97,7 +97,27 @@ def modify_doc(doc):
     callback_id = None
 
     # Give button functions
+    
+    
+    # WARNING: Occasional bug with clear? Sometimes, after clear, graph turns white?
+    # Note: Need to fix!
+    def clear():
+        # Clears data and resets graph
+        global ebeamList, ipm2List
+        ipm2List.clear()
+        ebeamList.clear()
+        print("Clear")
+            
+    def saveFile():
+        # Write data to csv file
+        dataFile = pd.DataFrame({'ebeam':ebeamList, 'ipm2':ipm2List})
+        dataFile.to_csv('data2.csv')
+        
+        print(len(ebeamList))
+        print("Saved!")
+        
     def updateGraph():
+        # Pause updating or not
         global callback_id
         if startButton.label == '► Play':
             startButton.label = '❚❚ Pause'
@@ -106,25 +126,20 @@ def modify_doc(doc):
             startButton.label = '► Play'
             doc.remove_periodic_callback(callback_id)
             
-    def saveFile():
-        # Write data to csv file
-        dataFile = pd.DataFrame({'ebeam':ebeamList, 'ipm2':ipm2List})
-        dataFile.to_csv('data.csv')
-        
-        print(len(ebeamList))
-        print("Saved!")
-            
-    # clear, start, save buttons        
-    startButton = Button(label='► Play', width=60)
-    startButton.on_click(updateGraph)
+    # clear, start, save buttons 
+    clearButton = Button(label='Clear', width=60)
+    clearButton.on_click(clear)
     
     saveButton = Button(label='Save', width=60)
     saveButton.on_click(saveFile)
     
+    startButton = Button(label='► Play', width=60)
+    startButton.on_click(updateGraph)
+    
     # Combine the holoviews plot and widgets in a layout
     plot = layout([
     [hvplot.state],
-    widgetbox([startButton, saveButton])], sizing_mode='fixed')
+    widgetbox([startButton, saveButton, clearButton])], sizing_mode='fixed')
     
     doc.add_root(plot)
     return doc
