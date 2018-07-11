@@ -47,6 +47,7 @@ dmap = hv.DynamicMap(
     genHex,
     streams=[stream])
 
+# NOTE: Change to deque
 # Get data from ophyd device
 data = FakeBeam()
 ipm2List = []
