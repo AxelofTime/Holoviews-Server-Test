@@ -4,12 +4,12 @@ import pandas as pd
 
 import sys
 from bokeh.io import show
-from bokeh.layouts import layout
-from bokeh.models import Button
+from bokeh.layouts import layout, widgetbox
+from bokeh.models import Button, Slider
 from bokeh.plotting import curdoc
 from bokeh.io import output_file, save, export_png
 import tables
-from fake_beam import FakeBeam
+from data_getter import ipm2List, ebeamList, new_data, beam
 
 renderer = hv.renderer('bokeh')
 
@@ -40,37 +40,25 @@ def background(df):
     iSig = np.bincount(ind2d, minlength=(xbins.shape[0]+1)*(ybins.shape[0]+1)).reshape(xbins.shape[0]+1, ybins.shape[0]+1)
     low = np.percentile(iSig, 1)
     high = np.percentile(iSig, 99)
-
+    
     img_less_bins = hv.Image(iSig, bounds = (ybins[0], xbins[0], ybins[-1], xbins[-1]),
-                            kdims=['ebeamL3','ipm2']).redim.range(z = (low, high))
-        
-    return hv.operation.contours(img_less_bins, filled = True).options(cmap = 'fire', height = 500, width = 500)
+                            kdims=['ebeamL3','ipm2']).options(show_legend=False).redim.range(z = (low, high))
+    # If used filled=False, legend will appear, can't figure out why    
+    return hv.operation.contours(img_less_bins, filled = False).options(cmap = 'fire', height = 500, width = 500)
 
-# Get live data
-data = FakeBeam()
-ipm2List = []
-ebeamList = []
-
-def new_data(*args, **kwargs):
-    global ipm2List, ebeamList
-    ipm2 = data.fake_ipm2.get()
-    ebeam = data.fake_L3.get()
-    ipm2List.append(ipm2)
-    ebeamList.append(ebeam)
-
-# Use old_length as counter to update scatter plot
-old_length = len(ipm2List)
 
 # Make scatter plot
 def gen_scatter(df):
-    return hv.Scatter(df)#.opts(size_index=20)#.redim.range(ebeam=(14420, 14450), ipm2=(0, 1.3))
+    return hv.Scatter(df).options(size=20)
 
-data.fake_L3.subscribe(new_data)
+beam.fake_L3.subscribe(new_data)
 
 dmap = hv.DynamicMap(background, streams=[stream])
 dmap2 = hv.DynamicMap(gen_scatter, streams=[stream2])
 
-combined = dmap*dmap2
+combined = (dmap*dmap2).options(show_legend=False)
+
+limit = 50
 
 def update(doc):
     # Update graph based on new data
@@ -78,7 +66,7 @@ def update(doc):
     hvplot = renderer.get_plot(combined, doc)
     
     callback_id = None
-    
+        
     # Update background if needed for new data
     def click():
         newData = pd.read_csv('data.csv', index_col='Unnamed: 0')
@@ -86,23 +74,34 @@ def update(doc):
     
     # Update scatter_tick once new points appear
     def scatter_tick():
-        global ebeamList, ipm2List, old_length
-        limit = 50
-        if old_length < len(ipm2List) - limit:
-            old_length = len(ipm2List)
-            data = pd.DataFrame({
-                'ebeam':ebeamList[-limit:], 'ipm2':ipm2List[-limit:]
-            })
-            stream2.event(df=data)
+        global ebeamList, ipm2List, old_length, limit
+        
+        ebeamConverted = list(ebeamList)
+        ipm2Converted = list(ipm2List)
+        
+        data = pd.DataFrame({
+            'ebeam':ebeamConverted[-limit:],
+            'ipm2':ipm2Converted[-limit:]
+        })
+        stream2.event(df=data)
+
+    # Control number of dots on scatter plot
+    def limit_update(attr, old, new):
+        global limit
+        limit = slider.value
         
     callback_id = doc.add_periodic_callback(scatter_tick, 500)
 
     button = Button(label='Update', width=60)
     button.on_click(click)
+        
+    slider = Slider(start=10, end=1000, value=50, step=1, title="Number of Events")
+    slider.on_change('value', limit_update)
     
     plot = layout([
     [hvplot.state],
-    [button]], sizing_mode='fixed')
+    widgetbox([button, slider])
+    ], sizing_mode='fixed')
     
     doc.add_root(plot)
     return doc
