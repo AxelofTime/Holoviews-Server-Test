@@ -99,7 +99,7 @@ def modify_doc(doc):
     def saveFile():
         # Write data to csv file
         dataFile = pd.DataFrame({'ebeam':ebeamList, 'ipm2':ipm2List})
-        dataFile.to_csv('data2.csv')
+        dataFile.to_csv('data.csv')
         
         print(len(ebeamList))
         print("Saved!")
