@@ -13,6 +13,7 @@ from bokeh.io import output_file, save, export_png
 import tables
 from fake_beam import FakeBeam
 from functools import partial
+from data_getter import ipm2List, ebeamList, new_data, beam
 
 renderer = hv.renderer('bokeh').instance(mode='server')
 
@@ -47,10 +48,6 @@ dmap = hv.DynamicMap(
     genHex,
     streams=[stream])
 
-# Get data from ophyd device
-data = FakeBeam()
-ipm2List = []
-ebeamList = []
 # ipm2TimeStamp = []
 # ebeamTimeStamp = []
 
@@ -63,16 +60,7 @@ checkList = pd.DataFrame({'ebeam':ebeamList, 'ipm2':ipm2List})
 #     kwargs['in_value'].append(kwargs['value'])
 #     kwargs['in_time'].append(kwargs['timestamp'])
     
-def new_data(*args, **kwargs):
-    global ipm2List, ebeamList
-    ipm2 = data.fake_ipm2.get()
-    ebeam = data.fake_L3.get()
-    ipm2List.append(ipm2)
-    ebeamList.append(ebeam)
-    # print(len(ipm2List))
-
-    
-data.fake_L3.subscribe(new_data)
+beam.fake_L3.subscribe(new_data)
     
 # data.fake_ipm2.subscribe(
 #     partial(new_data, in_value=ipm2List, in_time=ipm2TimeStamp)
