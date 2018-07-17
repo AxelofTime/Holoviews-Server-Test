@@ -50,7 +50,6 @@ def produce_curve(doc, diode_t, diode):
         
         #timeStuff = pd.to_datetime(diode_t)
         #print(timeStuff)
-        #goog_dates = np.array(GOOG['date'], dtype=np.datetime64)
         #print(diode_t)
         #times = np.array(diode_t, dtype=np.datetime64)
         #print(times)
