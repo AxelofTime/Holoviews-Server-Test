@@ -44,7 +44,7 @@ def produce_correlation_graphs(doc, diode_t_dict, diode_dict):
     Parameters
     ----------
     
-    doc: ???
+    doc: bokeh.document (I think)
         Bokeh document to be displayed on webpage
     
     diode_t_dict: dictionary
@@ -82,7 +82,7 @@ def produce_correlation_graphs(doc, diode_t_dict, diode_dict):
         partial(hv.Scatter, kdims=['x_diode','y_diode'], group='T4D vs DCO'), streams=[b_t4d_dco]).options(
         width=width).redim.label(x_diode='T4D', y_diode='DCO')
     
-    plots_col = (hvPoint_dcc_dco + hvPoint_t4d_dco + hvPoint_do_di + hvPoint_t4d_dd).cols(2)
+    #plots_col = (hvPoint_dcc_dco + hvPoint_t4d_dco + hvPoint_do_di + hvPoint_t4d_dd).cols(2)
     
     # Render plot with bokeh
     hvplot = renderer.get_plot(plots_col, doc)
@@ -162,7 +162,7 @@ def produce_curve(doc, diode_t_dict, diode_dict):
     Parameters
     ----------
     
-    doc: ???
+    doc: bokeh.document (I think)
         Bokeh document to be displayed on webpage
     
     diode_t_dict: dictionary
