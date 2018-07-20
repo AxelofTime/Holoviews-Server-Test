@@ -99,6 +99,7 @@ def gen_scatter(df):
 def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS): 
     """
     Produce updating hextiles plot and push them onto the web page document.
+    
     User may save current data, clear existing data, or pause the graph. User
     can also switch between ipm2 and ipm3 over ebeam graphs.
     
@@ -160,8 +161,9 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
     
     def clear():
         """
-        "Clear" graphs and particular lists of server instance. Save current index
-        and only plot points after that index.
+        "Clear" graphs and particular lists of server instance. 
+        
+        Save current index and only plot points after that index.
         
         """
         
@@ -262,9 +264,10 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
 def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
     """
     Produce background plot with updating scatter plot on top of it 
-    and push them onto the web page document. User can control how many
-    points of the scatter plot appears and update the contour plot. User
-    may also switch between ipm2 and ipm3 over ebeam graphs.
+    and push them onto the web page document. 
+    
+    User can control how many points of the scatter plot appears and update the 
+    contour plot. User may also switch between ipm2 and ipm3 over ebeam graphs.
     
     Parameters
     ----------
@@ -429,6 +432,7 @@ def launch_server():
     '''
     Launch a bokeh_server to plot a hextiles plot of ipm value over ebeam value
     and generate a background contour plot with updating scatter plot on top of it.
+    
     Functionalities include a save button, clear button, pause button, and (buggy) ipm
     select drop down menu for the hextiles plot. Contour and scatter plot have an update
     button and select drop down.
