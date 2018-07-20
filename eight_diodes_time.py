@@ -55,28 +55,32 @@ def produce_correlation_graphs(doc, diode_t_dict, diode_dict):
     
     """
     
+    # Initialize formatting variables
+    buffer_length = 40000
+    width = 500
+    
     # Initialize Streams
-    b_dcc_dco = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=40000)
-    b_t4d_dd = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=40000)
-    b_do_di = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=40000)
-    b_t4d_dco = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=40000)
+    b_dcc_dco = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=buffer_length)
+    b_t4d_dd = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=buffer_length)
+    b_do_di = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=buffer_length)
+    b_t4d_dco = Buffer(pd.DataFrame({'x_diode':[], 'y_diode':[]}), length=buffer_length)
     
     # Initialize dynamic maps
     hvPoint_dcc_dco = hv.DynamicMap(
         partial(hv.Scatter, kdims=['x_diode','y_diode'], group='DCC vs DCO'), streams=[b_dcc_dco]).options(
-        width=500).redim.label(x_diode='DCC', y_diode='DCO')
+        width=width).redim.label(x_diode='DCC', y_diode='DCO')
     
     hvPoint_t4d_dd = hv.DynamicMap(
         partial(hv.Scatter, kdims=['x_diode','y_diode'], group='T4D vs DD'), streams=[b_t4d_dd]).options(
-        width=500).redim.label(x_diode='T4D', y_diode='DD')
+        width=width).redim.label(x_diode='T4D', y_diode='DD')
     
     hvPoint_do_di = hv.DynamicMap(
         partial(hv.Scatter, kdims=['x_diode','y_diode'], group='DO vs DI'), streams=[b_do_di]).options(
-        width=500).redim.label(x_diode='DO', y_diode='DI')
+        width=width).redim.label(x_diode='DO', y_diode='DI')
     
     hvPoint_t4d_dco = hv.DynamicMap(
         partial(hv.Scatter, kdims=['x_diode','y_diode'], group='T4D vs DCO'), streams=[b_t4d_dco]).options(
-        width=500).redim.label(x_diode='T4D', y_diode='DCO')
+        width=width).redim.label(x_diode='T4D', y_diode='DCO')
     
     plots_col = (hvPoint_dcc_dco + hvPoint_t4d_dco + hvPoint_do_di + hvPoint_t4d_dd).cols(2)
     
@@ -110,28 +114,30 @@ def produce_correlation_graphs(doc, diode_t_dict, diode_dict):
         
         nonlocal cb_id_dcc_dco, cb_id_t4d_dd, cb_id_do_di, cb_id_t4d_dco
         
+        cb_time = 1000
+        
         if startButton.label == '► Play':
             startButton.label = '❚❚ Pause'
             
             cb_id_dcc_dco = doc.add_periodic_callback(
                 partial(push_data, x_diode=diode_dict['dcc_d'], y_diode=diode_dict['dco_d'], 
                         x_diode_t=diode_t_dict['dcc_t'], y_diode_t=diode_t_dict['dco_t'], buffer=b_dcc_dco),
-                1000)
+                cb_time)
 
             cb_id_t4d_dd = doc.add_periodic_callback(
                 partial(push_data, x_diode=diode_dict['t4d_d'], y_diode=diode_dict['dd_d'], 
                         x_diode_t=diode_t_dict['t4d_t'], y_diode_t=diode_t_dict['dd_t'], buffer=b_t4d_dd),
-                1000)
+                cb_time)
 
             cb_id_do_di = doc.add_periodic_callback(
                 partial(push_data, x_diode=diode_dict['do_d'], y_diode=diode_dict['di_d'], 
                         x_diode_t=diode_t_dict['do_t'], y_diode_t=diode_t_dict['di_t'], buffer=b_do_di),
-                1000)
+                cb_time)
 
             cb_id_t4d_dco = doc.add_periodic_callback(
                 partial(push_data, x_diode=diode_dict['t4d_d'], y_diode=diode_dict['dco_d'], 
                         x_diode_t=diode_t_dict['t4d_t'], y_diode_t=diode_t_dict['dco_t'], buffer=b_t4d_dco),
-                1000)
+                cb_time)
             
         else:
             startButton.label = '► Play'
