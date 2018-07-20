@@ -211,7 +211,8 @@ def produce_curve(doc, diode_t_dict, diode_dict):
         width=width, finalize_hooks=[apply_formatter], xrotation=xrotation).redim.label(
         index='Time in UTC', diode='DCO Reading')
     
-    hvPoint_dd = hv.DynamicMap(partial(hv.Points, group='Diode', label='DD'), streams=[buffer_dd]).options(
+    hvPoint_dd = hv.DynamicMap(
+        partial(hv.Points, group='Diode', label='DD'), streams=[buffer_dd]).options(
         width=width, finalize_hooks=[apply_formatter], xrotation=xrotation).redim.label(
         index='Time in UTC', diode='DD Reading')
     
