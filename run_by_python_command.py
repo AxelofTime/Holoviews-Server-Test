@@ -199,6 +199,7 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
         #print(zipped)
         streamHex.event(df=data)
     
+    # Graph doesn't seem to pause at all if button is pressed
     def play_graph():
         """
         Provide play and pause functionality to the graph
