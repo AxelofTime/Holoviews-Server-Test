@@ -199,7 +199,6 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
         #print(zipped)
         streamHex.event(df=data)
     
-    # Graph doesn't seem to pause at all if button is pressed
     def play_graph():
         """
         Provide play and pause functionality to the graph
@@ -209,7 +208,7 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
         nonlocal callback_id_hex
         if startButton.label == '► Play':
             startButton.label = '❚❚ Pause'
-            callback_id_scatter = doc.add_periodic_callback(push_data, 1000)
+            callback_id_hex = doc.add_periodic_callback(push_data, 1000)
         else:
             startButton.label = '► Play'
             doc.remove_periodic_callback(callback_id_hex)
@@ -399,9 +398,23 @@ def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ip
         data = newData[['ebeam', switch_key_scatter]]
         
         streamContour.event(df=data)
+        
+    def play_graph():
+        """
+        Provide play and pause functionality to the graph
+
+        """
+        
+        nonlocal callback_id_scatter
+        if startButton.label == '► Play':
+            startButton.label = '❚❚ Pause'
+            callback_id_scatter = doc.add_periodic_callback(scatter_tick, 1000)
+        else:
+            startButton.label = '► Play'
+            doc.remove_periodic_callback(callback_id_scatter)
     
     # Continuously update scatter plot
-    callback_id_scatter = doc.add_periodic_callback(scatter_tick, 500)
+    #callback_id_scatter = doc.add_periodic_callback(scatter_tick, 500)
     
     # Create widgets
     limitSlider = Slider(start=10, end=1000, value=50, step=1, title="Number of Events")
@@ -411,11 +424,14 @@ def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ip
     select.on_change('value', switch)
     select.on_change('value', switch_background)
     
+    startButton = Button(label='► Play')
+    startButton.on_click(play_graph)
+    
     updateButton = Button(label='Update', width=60)
     updateButton.on_click(update_background)
     
     plot = layout([[hvplot.state], 
-                   widgetbox([limitSlider, select, updateButton], sizing_mode='stretch_both')])
+                   widgetbox([limitSlider, select, updateButton, startButton], sizing_mode='stretch_both')])
     
     doc.title = "Reference Graph"
     doc.add_root(plot)
@@ -433,7 +449,6 @@ def launch_server():
     '''
     Launch a bokeh_server to plot a hextiles plot of ipm value over ebeam value
     and generate a background contour plot with updating scatter plot on top of it.
-    
     Functionalities include a save button, clear button, pause button, and (buggy) ipm
     select drop down menu for the hextiles plot. Contour and scatter plot have an update
     button and select drop down.
