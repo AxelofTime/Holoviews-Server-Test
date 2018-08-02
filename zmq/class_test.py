@@ -1,5 +1,6 @@
 import sys
 import zmq
+import traceback
 
 import numpy as np
 import holoviews as hv
@@ -13,6 +14,7 @@ from bokeh.server.server import Server
 from bokeh.application import Application
 from bokeh.application.handlers.function import FunctionHandler
 from holoviews.streams import Buffer
+from holoviews.core import util
 import tables
 from functools import partial
 from collections import deque
@@ -37,11 +39,32 @@ def apply_formatter(plot, element):
         days=['%D %H:%M:%S'], 
         months=['%D %H:%M:%S'], 
         years=['%D %H:%M:%S'])
+
+
+def my_partial(func, *args, **kwargs):
+    def wrap(*args, **kwargs):
+        return func(*args, **kwargs)
+    return partial(wrap, *args, **kwargs)
     
 class ClassTest:
     
     def __init__(self):
         self.switchButton = 'ipm2__sum'
+        
+        trial = pd.DataFrame({'time':[],'correlation':[]})
+        self.b_timehistory = Buffer(trial, length=40000)
+        print("3: " + str(self.b_timehistory.data.head(5)))
+        
+    def clear_buffer(self):
+
+        data = pd.DataFrame({'time':[], 'correlation':[]})
+        
+        with util.disable_constant(self.b_timehistory):
+            
+            self.b_timehistory.data = self.b_timehistory.data.iloc[:0]
+
+        self.b_timehistory.send(data)
+        print("1: " + str(self.b_timehistory.data.head(5)))
     
     def produce_graphs(self, context, doc):
 
@@ -51,9 +74,11 @@ class ClassTest:
         socket.connect("tcp://psanagpu114:%d" % port)
         socket.setsockopt(zmq.SUBSCRIBE, b"")
 
+        # Change and use my_partial to make the code more clear
+        
         b_scatter = Buffer(pd.DataFrame({'timetool': []}), length=40000)
         b_IpmAmp = Buffer(pd.DataFrame({'ipm':[]}), length=1000)
-        b_timehistory = Buffer(pd.DataFrame({'correlation':[]}), length=40000)
+        #b_timehistory = Buffer(pd.DataFrame({'correlation':[]}), length=40000)
 
         hvScatter = hv.DynamicMap(
             hv.Points, streams=[b_scatter]).options(
@@ -66,7 +91,7 @@ class ClassTest:
             index='Timetool Data')
         
         hvTimeHistory = hv.DynamicMap(
-            hv.Scatter, streams=[b_timehistory]).options(
+            my_partial(hv.Scatter, kdims=['time', 'correlation']), streams=[self.b_timehistory]).options(
             width=500, finalize_hooks=[apply_formatter], xrotation=45).redim.label(
             time='Time in UTC')
 
@@ -81,7 +106,6 @@ class ClassTest:
             timetool_d = deque(maxlen=1000000)
             timetool_t = deque(maxlen=1000000)
 
-            # Current bug, may need to have continuous stream of data?
             if socket.poll(timeout=0):
                 stuff = socket.recv_pyobj()
                 timetool_d = stuff['tt__FLTPOS_PS']
@@ -92,7 +116,6 @@ class ClassTest:
                     num2 = str(time[1])
                     fullnum = num1 + "." + num2
                     timeData.append(float(fullnum))
-                    print("Scatter")
                 timetool_t = timeData
 
             timeStuff = list(timetool_t)
@@ -103,7 +126,7 @@ class ClassTest:
             data = data.set_index('timestamp')
             data.index.name = None
             buffer.send(data)
-            print("Boop")
+            #print("Scatter")
             
         def push_data_amp_ipm (buffer):
         
@@ -120,20 +143,21 @@ class ClassTest:
             data.index.name = None
 
             buffer.send(data)
-            print("Gottem")
+            #print("Versus")
             
         def push_data_correlation_time_history(buffer):
         
-            timetool_d = deque(maxlen=1000000)
-            timetool_t = deque(maxlen=1000000)
-            ipm2_d = deque(maxlen=1000000)
+            maxlen = 1000000
+            timetool_d = deque(maxlen=maxlen)
+            timetool_t = deque(maxlen=maxlen)
+            ipm2_d = deque(maxlen=maxlen)
 
             if socket.poll(timeout=0):
                 stuff = socket.recv_pyobj()
                 timetool_d = stuff['tt__FLTPOS_PS']
                 ipm2_d = stuff[self.switchButton]
 
-                timeData = deque(maxlen=1000000)
+                timeData = deque(maxlen=maxlen)
                 for time in stuff['event_time']:
                     num1 = str(time[0])
                     num2 = str(time[1])
@@ -154,11 +178,15 @@ class ClassTest:
                 'correlation': data_list[119:]
             })
 
-            final_df = final_df.set_index('time')
-            final_df.index.name = None
+            #final_df = final_df.set_index('time')
+            #final_df.index.name = None
+            #print(len(final_df))
 
             buffer.send(final_df)
-            print("Heh")
+            #print("1: " + str(final_df.columns))
+            #print("Boop: " + str(final_df.head(5)))
+            print("2: " + str(buffer.data.head(5)))
+            #print("Corr")
         
         def switch(attr, old, new):
             """
@@ -167,14 +195,31 @@ class ClassTest:
             """
             
             # WARNING: Buffers don't seem to be clearing
-            
-            self.switchButton = select.value
-            b_IpmAmp.clear()
-            b_timehistory.clear()
+            try:
+                self.switchButton = select.value
+                #print(type(self.b_timehistory.data))
+                #print(self.b_timehistory.data.columns)
+                #print(b_IpmAmp.data.iloc[:0].columns)
+                
+                #print("Meep: "+ str(self.b_timehistory.data.iloc[0]))
+                #print("Size: " + str(len(self.b_timehistory.data)))
+                self.clear_buffer()
+                
+                print("I worked!")
+                
+                #b_IpmAmp.clear()
+                #b_timehistory.clear()
+            except Exception as exc:
+                traceback.print_exc(file=sys.stdout)
+            print("Boop")
 
         select = Select(title='ipm value:', value='ipm2__sum', options=['ipm2__sum', 'tt__FLTPOS_PS'])
         #select = Select(title='ipm value:', value='ipm2__sum', options=['ipm2__sum', 'ipm3__sum'])
         select.on_change('value', switch)
+        #select.on_change('value', resetGraph)
+        
+#         reset = Button(label='reset')
+#         reset.on_click(resetGraph)
         
         cb_id_scatter = doc.add_periodic_callback(
             partial(push_data_scatter, 
@@ -188,20 +233,24 @@ class ClassTest:
 
         cb_id_timehistory = doc.add_periodic_callback(
             partial(push_data_correlation_time_history, 
-                    buffer=b_timehistory), 
+                    buffer=self.b_timehistory), 
             1000)
 
         plot = column(select, hvplot.state)
         doc.add_root(plot)
+        
+def make_document(context, doc):
+    trial = ClassTest()
+    
+    trial.produce_graphs(context, doc)
     
 def launch_server():
    
-    trial = ClassTest()
     context = zmq.Context()
 
     origins = ["localhost:{}".format(5000)]
     
-    apps = {'/': Application(FunctionHandler(partial(trial.produce_graphs, context)))}
+    apps = {'/': Application(FunctionHandler(partial(make_document, context)))}
     server = Server(apps, port=5000)
     
     server.start()
