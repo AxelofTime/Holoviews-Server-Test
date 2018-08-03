@@ -1,0 +1,6 @@
+#!/bin/bash
+source /reg/g/psdm/etc/psconda.sh
+cd /reg/neh/home/lauc/smalldata_tools/shmem_examples/
+export PYTHONPATH=$PYTHONPATH:/reg/neh/home/lauc/smalldata_tools
+mpirun -n 4 ./mpiScript_xtcTest.sh
+#`which mpirun` -n 3 --oversubscribe  --hostfile xpp-monlist ./mpiScript.sh

@@ -1,0 +1,6 @@
+#!/bin/bash
+source /reg/g/psdm/etc/psconda.sh
+
+#mpirun -n 11 mpiScript.sh
+#`which mpirun` -n 23 --oversubscribe -H daq-xpp-mon05,daq-xpp-mon06 mpiScript.sh
+`which mpirun` -n 22 --oversubscribe  --hostfile xpp-monlist ./mpiScript.sh
