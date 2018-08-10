@@ -115,6 +115,7 @@ def gen_scatter(df):
         DataFrame containing data to be ploted on scatter plot
     
     """
+    print(df.head())
     return hv.Scatter(df).options(size=10, tools=['hover'], apply_ranges=False)
     
 def produce_timehistory(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
@@ -136,12 +137,12 @@ def produce_timehistory(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebea
     
     plot_ipm_std_low = hv.DynamicMap(partial(
         hv.Curve, kdims=['index', 'lowerbound']), streams=[b_th_ipm_std]).options(
-        line_alpha=0.5, line_color='yellow').redim.label(
+        line_alpha=0.5, line_color='gray').redim.label(
         index='Time in UTC')
     
     plot_ipm_std_high = hv.DynamicMap(partial(
         hv.Curve, kdims=['index', 'higherbound']), streams=[b_th_ipm_std]).options(
-        line_alpha=0.5, line_color='yellow').redim.label(
+        line_alpha=0.5, line_color='gray').redim.label(
         index='Time in UTC')
     
     plot = (plot_ipm_b*plot_ipm_std_low*plot_ipm_std_high)
@@ -149,14 +150,7 @@ def produce_timehistory(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebea
     # Use bokeh to render plot
     hvplot = renderer.get_plot(plot, doc)
     
-    callback_id_th2 = None
-    callback_id_th3 = None
-    
-    cb_id_low_std_th2 = None
-    cb_id_high_std_th2 = None
-    cb_id_low_std_th3 = None
-    cb_id_high_std_th3 = None
-    
+    # For pushing in data, maybe cut off first 119 points to get rid of those weird extremes
     def push_data(stream):
                 
         if switch_key == 'ipm2':
@@ -172,6 +166,7 @@ def produce_timehistory(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebea
         zipped = basic_event_builder(ipm=ipmData)
         median = zipped.rolling(120, min_periods=1).median()
         
+        # This might be making it take a long time to switch 
         if type(stream) == hv.streams.Buffer:
             if len(median) > 1000:
                 counter = 0
@@ -274,10 +269,6 @@ def produce_timehistory(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebea
         partial(push_data, stream=b_th_ipm), 
         1000)
     
-#     callback_id_th3_b = doc.add_periodic_callback(
-#         partial(push_data, ipm=ipm3List, timestamp=ipm3TS, stream=b_th_ipm3), 
-#         1000)
-    
     cb_id_low_std_th = doc.add_periodic_callback(
         partial(push_std, stream=b_th_ipm_std), 
         1000)
@@ -285,14 +276,6 @@ def produce_timehistory(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebea
     cb_id_high_std_th = doc.add_periodic_callback(
         partial(push_std, stream=b_th_ipm_std), 
         1000)
-    
-#     cb_id_low_std_th3 = doc.add_periodic_callback(
-#         partial(push_std, ipm=ipm3List, timestamp=ipm3TS, stream=b_th_ipm3_std), 
-#         1000)
-    
-#     cb_id_high_std_th3 = doc.add_periodic_callback(
-#         partial(push_std, ipm=ipm3List, timestamp=ipm3TS, stream=b_th_ipm3_std), 
-#         1000)
     
     plot = column(select, hvplot.state)
                            
@@ -360,6 +343,7 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
     
     # Initialize values that can be updated by widgets
     switch_key_hex = 'ipm2'
+    paused_list = pd.DataFrame({'ebeam':[], 'ipm2':[], 'ipm3':[]})
     
     def clear():
         """
@@ -383,7 +367,7 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
         
         """
         
-        nonlocal ipm2_plot, ipm3_plot, ebeam_plot, ipm2TS_plot, ipm3TS_plot, ebeamTS_plot
+        nonlocal ipm2_plot, ipm3_plot, ebeam_plot, ipm2TS_plot, ipm3TS_plot, ebeamTS_plot, paused_list
         
         ipm2_plot = list(ipm2List)[ipm2_index:]
         ipm3_plot = list(ipm3List)[ipm3_index:]
@@ -397,6 +381,7 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
         ebeamData = pd.Series(ebeam_plot, index=ebeamTS_plot)
         zipped = basic_event_builder(ipm2=ipm2Data, ipm3=ipm3Data, ebeam=ebeamData)
         data = zipped[['ebeam', switch_key_hex]]
+        paused_list = zipped
         #print(zipped)
         streamHex.event(df=data)
     
@@ -436,6 +421,12 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
         
         nonlocal switch_key_hex
         switch_key_hex = select.value
+        
+    def switch_on_pause(attr, old, new):
+        if startButton.label == '► Play':
+            streamHex.event(df=paused_list[['ebeam', switch_key_hex]])
+    
+    callback_id_hex = doc.add_periodic_callback(push_data, 1000)
     
     # Create widgets
     clearButton = Button(label='Clear')
@@ -446,8 +437,9 @@ def produce_hex(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ipm3TS, ebeamTS):
     
     select = Select(title="ipm value:", value="ipm2", options=["ipm2", "ipm3"])
     select.on_change('value', switch)
+    select.on_change('value', switch_on_pause)
     
-    startButton = Button(label='► Play')
+    startButton = Button(label='❚❚ Pause')
     startButton.on_click(play_graph)
     
     # Layout
@@ -530,12 +522,14 @@ def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ip
     # Initialize variables than can be updated by widgets
     switch_key_scatter = 'ipm2'
     limit = 50
+    paused_list = pd.DataFrame({'ebeam':[], 'ipm2':[], 'ipm3':[]})
     
     def scatter_tick():
         """
         Push new scatter points into stream to plot.
         
         """
+        nonlocal paused_list
         
         # Still has the freezing points error, though, it seems to come more frequently. 
         # This may be a bigger problem now
@@ -556,8 +550,10 @@ def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ip
         scatterList = zipped[-limit:]
         
         data = scatterList[['ebeam', switch_key_scatter]]
+        paused_list = scatterList
       
         streamScatter.event(df=data)
+        #print(data)
     
     def limit_update(attr, old, new):
         """
@@ -585,6 +581,13 @@ def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ip
         nonlocal curBackData
         data = curBackData[['ebeam', switch_key_scatter]]
         streamContour.event(df=data)
+        
+    def switch_on_pause(attr, old, new):
+        if startButton.label == '► Play':
+        
+            #streamScatter.event(df=pd.DataFrame({'ebeam':[], 'ipm2': [], 'ipm3':[]}))
+            #print("why")
+            streamScatter.event(df=paused_list[['ebeam', switch_key_scatter]])
         
     def update_background():
         """
@@ -614,18 +617,19 @@ def produce_scatter_on_background(doc, ipm2List, ipm3List, ebeamList, ipm2TS, ip
             doc.remove_periodic_callback(callback_id_scatter)
     
     # Continuously update scatter plot
-    #callback_id_scatter = doc.add_periodic_callback(scatter_tick, 500)
+    callback_id_scatter = doc.add_periodic_callback(scatter_tick, 1000)
     
     # Create widgets
     limitSlider = Slider(start=10, end=1000, value=50, step=1, title="Number of Events")
     limitSlider.on_change('value', limit_update)
     
+    startButton = Button(label='❚❚ Pause')
+    startButton.on_click(play_graph)
+    
     select = Select(title="ipm value:", value="ipm2", options=["ipm2", "ipm3"])
     select.on_change('value', switch)
     select.on_change('value', switch_background)
-    
-    startButton = Button(label='► Play')
-    startButton.on_click(play_graph)
+    select.on_change('value', switch_on_pause)
     
     updateButton = Button(label='Update', width=60)
     updateButton.on_click(update_background)
