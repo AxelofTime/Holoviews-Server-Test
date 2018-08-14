@@ -138,24 +138,6 @@ def produce_timehistory(doc, peak, peakTS):
         df = pd.DataFrame({'peak':median['peak'], 'lowerbound':lowerbound['peak'], 'higherbound':higherbound['peak']})
         
         stream.send(df)
-      
-    def push_std(stream):
-        
-        TS_key = switch_key + '_TS'
-        data = list(peak[switch_key])
-        timestamp = list(peakTS[TS_key])
-       
-        times = [1000*time for time in timestamp]
-        dataSeries = pd.Series(data, index=times)
-        
-        zipped = basic_event_builder(peak=dataSeries)
-        median = zipped.rolling(120, min_periods=1).median()
-        std = zipped.rolling(120, min_periods=1).std()
-        lowerbound = median - std
-        higherbound = median + std
-        df = pd.DataFrame({'lowerbound':lowerbound['peak'], 'higherbound':higherbound['peak']})
-        
-        stream.send(df)
     
     def push_spikes(stream, position):
         
