@@ -114,7 +114,7 @@ def launch_server():
     while True:
         socket.send_pyobj(data)
         print(len(data['peakDict']['peak_8']))
-        time.sleep(0.5)
+        time.sleep(1)
         
 if __name__ == '__main__':
     launch_server()
