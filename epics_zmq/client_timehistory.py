@@ -69,6 +69,19 @@ class BokehApp:
         self.b_th_peak.send(pd.DataFrame({'peak':[], 'lowerbound':[], 'higherbound':[]}))
     
     def produce_timehistory(self, context, doc):
+        """
+        Create timetool data timehistory
+        
+        Parameters
+        ----------
+        
+        context = zmq.Context()
+            Creates zmq socket to receive data
+            
+        doc: bokeh.document (I think)
+            Bokeh document to be displayed on webpage
+        
+        """
 
         # Port to connect to master
         port = 5000
@@ -108,6 +121,10 @@ class BokehApp:
         hvplot = renderer.get_plot(plot, doc)
 
         def push_data(stream):
+            """
+            Push data to timetool time history graph
+            
+            """
             
             median = pd.DataFrame({'peak':[]})
             lowerbound = pd.DataFrame({'peak':[]})
