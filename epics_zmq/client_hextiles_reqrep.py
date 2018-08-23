@@ -97,15 +97,26 @@ class BokehApp:
         self.ebeamTS_plot = []
     
     def produce_hex(self, context, doc): 
+        """
+        Create hextiles plot
+        
+        Parameters
+        ----------
+        
+        context = zmq.Context()
+            Creates zmq socket to receive data
+            
+        doc: bokeh.document (I think)
+            Bokeh document to be displayed on webpage
+        
+        """
         
         # Port to connect to master
         port = 5000
         socket = context.socket(zmq.REQ)
         
         # MUST BE FROM SAME MACHINE, CHANGE IF NECESSARY!!!
-        socket.connect("tcp://localhost:%d" % port)
-        #socket.setsockopt(zmq.SUBSCRIBE, b"")
-        
+        socket.connect("tcp://localhost:%d" % port)        
 
         # Generate dynamic map
         plot = hv.DynamicMap(gen_hex, streams=[self.streamHex])
@@ -214,6 +225,11 @@ class BokehApp:
             self.switch_key = select.value
 
         def switch_on_pause(attr, old, new):
+            """
+            Switch hextiles plot even when live plotting is paused
+
+            """
+            
             if startButton.label == '► Play':
                 self.streamHex.event(df=self.paused_list[['ebeam', self.switch_key]])
 
