@@ -97,6 +97,19 @@ class BokehApp:
         self.ebeamTS_plot = []
     
     def produce_hex(self, context, doc): 
+        """
+        Create hextiles plot
+        
+        Parameters
+        ----------
+        
+        context = zmq.Context()
+            Creates zmq socket to receive data
+            
+        doc: bokeh.document (I think)
+            Bokeh document to be displayed on webpage
+        
+        """
         
         # Port to connect to master
         port = 5000
@@ -168,6 +181,7 @@ class BokehApp:
         # Because of how the ZMQ pipe works, if you pause it, then the graph is delayed by however
         # long it's paused for (so instead of updating all the missed data at once, it'll try to read
         # each pipe send)
+        # Note: See reqrep files for a possible solution to this problem
         def play_graph():
             """
             Provide play and pause functionality to the graph
@@ -213,6 +227,11 @@ class BokehApp:
             self.switch_key = select.value
 
         def switch_on_pause(attr, old, new):
+            """
+            Switch hextiles plot even when live plotting is paused
+
+            """
+            
             if startButton.label == '► Play':
                 self.streamHex.event(df=self.paused_list[['ebeam', self.switch_key]])
 
