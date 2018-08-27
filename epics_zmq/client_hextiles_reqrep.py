@@ -123,6 +123,20 @@ class BokehApp:
 
         # Use bokeh to render plot
         hvplot = renderer.get_plot(plot, doc)
+        
+        socket.send_string("First")
+        print("Woof")
+        data_dict = socket.recv_pyobj() 
+        
+        peakDict = data_dict['peakDict']
+        peakTSDict = data_dict['peakTSDict']
+        
+        self.ipm2_index = len(peakDict['peak_8'])
+        self.ipm3_index = len(peakDict['peak_9'])
+        self.ebeam_index = len(peakDict['peak_10'])
+        self.ipm2TS_index = len(peakTSDict['peak_8_TS'])
+        self.ipm3TS_index = len(peakTSDict['peak_9_TS'])
+        self.ebeamTS_index = len(peakTSDict['peak_10_TS'])
 
         def clear():
             """
