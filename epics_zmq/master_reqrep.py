@@ -115,7 +115,6 @@ def launch_server():
         
         message = socket.recv()
         print("Received request: ", message)
-        time.sleep(1)
         socket.send_pyobj(data)
         
 if __name__ == '__main__':
