@@ -108,7 +108,7 @@ class BokehApp:
         self.curBackData = pd.read_csv('data_class.csv', index_col='Unnamed: 0')
         
         # Initialize buffers
-        self.streamContour = hv.streams.Stream.define('df', df=self.curBackData)()
+        self.streamContour = hv.streams.Stream.define('df', df=self.curBackData[['ebeam', self.switch_key]])()
         self.streamScatter = hv.streams.Stream.define('df', df=pd.DataFrame({'ebeam':[], 'ipm2':[]}))()
         
         # Initialize callbacks
