@@ -162,7 +162,11 @@ class BokehApp:
             "Clear" graphs and particular lists of server instance. Save current index
             and only plot points after that index.
 
-            """           
+            """  
+            # Small bug, sometimes, when pressing clear after a while, it'll just
+            # load a lot of data instead of clearing? I think it might be skipping over
+            # the resetting of the index
+            
             self.ipm2_index = len(self.ipm2_plot)
             self.ipm3_index = len(self.ipm3_plot)
             self.ebeam_index = len(self.ebeam_plot)
