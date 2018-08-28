@@ -96,15 +96,16 @@ class BokehApp:
         self.ipm3TS_plot = []
         self.ebeamTS_plot = []
     
-    def produce_hex(self, context, doc): 
+    def produce_hex(self, context, doc, numEvents): 
         
         # Port to connect to master
         port = 5000
-        socket = context.socket(zmq.SUB)
+        #socket = context.socket(zmq.SUB)
+        socket = context.socket(zmq.REQ)
         
         # MUST BE FROM SAME MACHINE, CHANGE IF NECESSARY!!!
         socket.connect("tcp://localhost:%d" % port)
-        socket.setsockopt(zmq.SUBSCRIBE, b"")
+        #socket.setsockopt(zmq.SUBSCRIBE, b"")
         
 
         # Generate dynamic map
@@ -112,6 +113,49 @@ class BokehApp:
 
         # Use bokeh to render plot
         hvplot = renderer.get_plot(plot, doc)
+        
+        socket.send_string("Hello")
+        print("Oof")
+
+        #if socket.poll(timeout=0):
+
+        data_dict = socket.recv_pyobj()
+        peakDict = data_dict['peakDict']
+        peakTSDict = data_dict['peakTSDict']
+        
+        # Set index to number of past events we want to see
+        # Definitely is a cleaner way to do this
+        if len(peakDict['peak_8']) < numEvents:
+            self.ipm2_index = 0
+        else:
+            self.ipm2_index = len(peakDict['peak_8']) - numEvents
+            
+        if len(peakDict['peak_9']) < numEvents:
+            self.ipm3_index = 0
+        else:
+            self.ipm3_index = len(peakDict['peak_9']) - numEvents
+            
+        if len(peakDict['peak_10']) < numEvents:
+            self.ebeam_index = 0
+        else:
+            self.ebeam_index = len(peakDict['peak_10']) - numEvents
+            
+        if len(peakTSDict['peak_8_TS']) < numEvents:
+            self.ipm2TS_index = 0
+        else:
+            self.ipm2TS_index = len(peakTSDict['peak_8_TS']) - numEvents
+            
+        if len(peakTSDict['peak_9_TS']) < numEvents:
+            self.ipm3TS_index = 0
+        else:
+            self.ipm3TS_index = len(peakTSDict['peak_9_TS']) - numEvents
+            
+        if len(peakTSDict['peak_10_TS']) < numEvents:
+            self.ebeamTS_index = 0
+        else:
+            self.ebeamTS_index = len(peakTSDict['peak_10_TS']) - numEvents
+
+      
 
         def clear():
             """
@@ -135,35 +179,38 @@ class BokehApp:
             
             # Doesn't seem to get the most recent data :(
 
-            if socket.poll(timeout=0):
+            socket.send_string("Hello")
+            print("Oof")
+            
+            #if socket.poll(timeout=0):
                 
-                data_dict = socket.recv_pyobj()
-                peakDict = data_dict['peakDict']
-                peakTSDict = data_dict['peakTSDict']
-                
-                self.ipm2_plot = list(peakDict['peak_8'])
-                self.ipm3_plot = list(peakDict['peak_9'])
-                self.ebeam_plot = list(peakDict['peak_10'])
-                self.ipm2TS_plot = list(peakTSDict['peak_8_TS'])
-                self.ipm3TS_plot = list(peakTSDict['peak_9_TS'])
-                self.ebeamTS_plot = list(peakTSDict['peak_10_TS'])
-                
-                ipm2Data = pd.Series(
-                    self.ipm2_plot[self.ipm2_index:], 
-                    index=self.ipm2TS_plot[self.ipm2TS_index:])
-                
-                ipm3Data = pd.Series(
-                    self.ipm3_plot[self.ipm3_index:], 
-                    index=self.ipm3TS_plot[self.ipm3TS_index:])
-                
-                ebeamData = pd.Series(
-                    self.ebeam_plot[self.ebeam_index:], 
-                    index=self.ebeamTS_plot[self.ebeamTS_index:])
-                
-                zipped = basic_event_builder(ipm2=ipm2Data, ipm3=ipm3Data, ebeam=ebeamData)
-                data = zipped[['ebeam', self.switch_key]]
-                self.paused_list = zipped
-                self.streamHex.event(df=data)
+            data_dict = socket.recv_pyobj()
+            peakDict = data_dict['peakDict']
+            peakTSDict = data_dict['peakTSDict']
+
+            self.ipm2_plot = list(peakDict['peak_8'])
+            self.ipm3_plot = list(peakDict['peak_9'])
+            self.ebeam_plot = list(peakDict['peak_10'])
+            self.ipm2TS_plot = list(peakTSDict['peak_8_TS'])
+            self.ipm3TS_plot = list(peakTSDict['peak_9_TS'])
+            self.ebeamTS_plot = list(peakTSDict['peak_10_TS'])
+
+            ipm2Data = pd.Series(
+                self.ipm2_plot[self.ipm2_index:], 
+                index=self.ipm2TS_plot[self.ipm2TS_index:])
+
+            ipm3Data = pd.Series(
+                self.ipm3_plot[self.ipm3_index:], 
+                index=self.ipm3TS_plot[self.ipm3TS_index:])
+
+            ebeamData = pd.Series(
+                self.ebeam_plot[self.ebeam_index:], 
+                index=self.ebeamTS_plot[self.ebeamTS_index:])
+
+            zipped = basic_event_builder(ipm2=ipm2Data, ipm3=ipm3Data, ebeam=ebeamData)
+            data = zipped[['ebeam', self.switch_key]]
+            self.paused_list = zipped
+            self.streamHex.event(df=data)
 
         
         # Because of how the ZMQ pipe works, if you pause it, then the graph is delayed by however
@@ -198,6 +245,8 @@ class BokehApp:
         
         updateButton = Button(label='Update')
         updateButton.on_click(push_data)
+        
+        push_data()
 
         # Layout
         #row_buttons = row([widgetbox([startButton, clearButton, saveButton], sizing_mode='stretch_both')])
@@ -211,7 +260,7 @@ class BokehApp:
         doc.add_root(plot)
     
     
-def make_document(context, doc):
+def make_document(context, numEvents, doc):
     """
     Create an instance of BokehApp() for each instance of the server
     
@@ -219,7 +268,7 @@ def make_document(context, doc):
     
     bokehApp = BokehApp()
     
-    bokehApp.produce_hex(context, doc)
+    bokehApp.produce_hex(context, doc, numEvents)
     
 def launch_server():
    
@@ -227,7 +276,10 @@ def launch_server():
 
     origins = ["localhost:{}".format(5007)]
     
-    apps = {'/': Application(FunctionHandler(partial(make_document, context)))}
+    # To be user input from script/bash
+    numEvents = 1000
+    
+    apps = {'/': Application(FunctionHandler(partial(make_document, context, numEvents)))}
     server = Server(apps, port=5007)
     
     server.start()
